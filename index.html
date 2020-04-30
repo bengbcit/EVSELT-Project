@@ -1,0 +1,161 @@
+  
+<button id="read">Connect with BLE device</button>
+<button id="start" disabled>Start</button>
+<button id="stop" disabled>Stop</button>
+
+<script>
+  var deviceName = 'EVSELT'
+  var bleService = 'environmental_sensing'
+  var bleCharacteristic = 'string'
+  var bluetoothDeviceDetected
+  var gattCharacteristic
+
+  var message = ""
+  var split = ""
+  //var current_time =[]
+  var rawData = []
+  var group =[]
+
+  /* querySelector returns 1st element match the specified selector(css selector: h2, .classUmade )
+     or grp selectors null will be return if no matches are found   */
+  
+  /* addEventListener(event,fn, useCapture)  useCapture is a boolean,*/
+  document.querySelector('#read').addEventListener('click', function() {
+    // event.stopPropagation()
+    // event.preventDefault()
+    if (isWebBluetoothEnabled()) { read() }
+  })
+
+  document.querySelector('#start').addEventListener('click', function(event) {
+    if (isWebBluetoothEnabled()) { 
+      // empty chart
+      group = []
+      start() }
+  })
+
+  document.querySelector('#stop').addEventListener('click', function(event) {
+    if (isWebBluetoothEnabled()) { stop() }
+  })
+
+  function isWebBluetoothEnabled() {
+    if (!navigator.bluetooth) {
+      console.log('Web Bluetooth API is not available in this browser!')
+      return false
+    }
+
+    return true
+  }
+
+  function getDeviceInfo() {
+    let options = {
+      // acceptAllDevices: true
+      optionalServices: [bleService],
+      // instead of accept all device, use filter; be an array obj 'name'
+      filters: [
+        { "name": deviceName }
+      ]
+    }
+
+    console.log('Requesting any Bluetooth Device...')
+    return navigator.bluetooth.requestDevice(options).then(device => {
+      bluetoothDeviceDetected = device
+    }).catch(error => {
+      console.log('Argh! ' + error)
+    })
+  }
+
+  function read() {
+    return (bluetoothDeviceDetected ? Promise.resolve() : getDeviceInfo())
+    .then(connectGATT)
+    .then(_ => {
+      console.log('Reading UV Index...')
+      return gattCharacteristic.readValue()
+    })
+    .catch(error => {
+      console.log('Waiting to start reading: ' + error)
+    })
+  }
+
+  function connectGATT() {
+    if (bluetoothDeviceDetected.gatt.connected && gattCharacteristic) {
+      return Promise.resolve()
+    }
+
+    return bluetoothDeviceDetected.gatt.connect()
+    .then(server => {
+      console.log('Getting GATT Service...')
+      return server.getPrimaryService(bleService)
+    })
+    .then(service => {
+      console.log('Getting GATT Characteristic...')
+      return service.getCharacteristic(bleCharacteristic)
+    })
+    .then(characteristic => {
+      gattCharacteristic = characteristic
+      gattCharacteristic.addEventListener('characteristicvaluechanged',
+          handleChangedValue)
+      document.querySelector('#start').disabled = false
+      document.querySelector('#stop').disabled = true
+    })
+  }
+
+  function handleChangedValue(event) {
+    let value = event.target.value.getUint8(0)
+    // creat string msg if current char if not '='
+    if (value != 61) //Char "="
+    {
+      var res = String.fromCharCode(value)
+      message = message + res
+    } else {
+      // separate string into 2 diff vals.
+      split =message.split(" ")
+      
+     // Change string values to number values
+      // curr_val = parseFloat(split[0])
+      // volt_val = parseFloat(split[1])
+
+    
+
+
+     // pass values
+     var queryString ="?para1" + split[0] + "&para2=" + split[1];
+     window.location.href ="demo.html" + queryString;
+     
+      // current date and time
+     // var now = new Date()
+    
+    // concact current time and data
+   // current_time = [now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds()]
+    
+    // reset msg
+    message = ""
+    }
+
+  }
+
+  function start() {
+    gattCharacteristic.startNotifications()
+    .then(_ => {
+      console.log('Start reading...')
+      document.querySelector('#start').disabled = true
+      document.querySelector('#stop').disabled = false
+    })
+    .catch(error => {
+      console.log('[ERROR] Start: ' + error)
+    })
+  }
+
+  function stop() {
+    gattCharacteristic.stopNotifications()
+    .then(_ => {
+      console.log('Stop reading...')
+      document.querySelector('#start').disabled = false
+      document.querySelector('#stop').disabled = true
+    })
+    .catch(error => {
+      console.log('[ERROR] Stop: ' + error)
+    })
+  }
+</script>
+<br></br>
+Go back to home page <a href="EVSELT.html">here!</a> 

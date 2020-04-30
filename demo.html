@@ -1,0 +1,107 @@
+<html>
+    <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="plotly.min.js"></script>
+    <script src="jquery-1.8.3.min"></script>
+    
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    </head>
+    <body>
+    <div class="navbar"><span>A Demo For Real-Time Chart of EVSELT </span></div>
+    <div class="wrapper">
+        <br>
+        <div id="Current"></div>
+        <script>
+            var layout = {
+                title: 'Current Line Chart',
+                xaxis:{title:'Seconds'},
+                yaxis:{title:'Current'},
+                width:1000,
+                type:'line'
+            };
+            var layout2 = {
+                title: 'Voltage Line Chart',
+                xaxis:{title:'Seconds'},
+                yaxis:{title:'Voltage'},
+                width:1000,
+                type:'line'
+            };
+
+            datas = []
+            // pass data
+            var queryString =decodeURIComponent(window.location.search);
+            queryString = queryString.substring(1);
+            var queries = queryString.split("&");
+            for (i = 0; i<queries.length;i++)
+            {
+                datas = parseFloat(queries[i]);
+            }
+            function getCurrentData(){
+                return 30*Math.random();
+            }
+            function getVoltageData(){
+                return 208*Math.random();
+            }
+            // y-axis data array; Type chose: line
+            Plotly.plot('Current',[{
+                y:[getCurrentData()],
+            }],layout);
+            
+            /* auto retrive data pt and update chart */
+            // create a cnt for each time new data pt is appended
+            var cnt = 0;
+            // set interval time for every 200 ms (we can modify anytime)
+            setInterval(function(){
+                // Plotly extend current chart fn; Plotly support multiple traces, so use I can use 2D array
+                // and 0 is array of index of chart traces that you want to extend with the data provided
+                Plotly.extendTraces('Current',{ y:[[getCurrentData()]]}, [0]);
+                
+                // we can use Plotly relayoyt fn to update the x-axis
+                // for example we display 500 data pt before sliding the chart
+                cnt++;
+                if(cnt > 500) {
+                    Plotly.relayout('Current',{
+                        xaxis: {
+                            range: [cnt-500,cnt]
+                        }
+                    });
+                }
+            },200);
+        </script>
+        <br>
+        <div id="Voltage"></div>
+        
+        <script>
+            // pass 1st element id, followed by chart definition obj
+            
+            // y-axis data array; Type chose: line
+            Plotly.plot('Voltage',[{y:[getVoltageData()], }],layout2);
+            
+            /* auto retrive data pt and update chart */
+            // create a cnt for each time new data pt is appended
+            var cnt = 0;
+            // set interval time for every 200 ms (we can modify anytime)
+            setInterval(function(){
+                // Plotly extend current chart fn; Plotly support multiple traces, so use I can use 2D array
+                // and 0 is array of index of chart traces that you want to extend with the data provided
+                Plotly.extendTraces('Voltage',{ y:[[getVoltageData()]]}, [0]);
+                
+                // we can use Plotly relayoyt fn to update the x-axis
+                // for example we display 500 data pt before sliding the chart
+                cnt++;
+                if(cnt > 500) {
+                    Plotly.relayout('Voltage',{
+                        xaxis: {
+                            range: [cnt-500,cnt]
+                        }
+                    });
+                }
+            },200);
+        </script>
+    
+    </div>
+    <br>
+        Go back to home page <a href="EVSELT.html">here!</a> 
+    </br>
+    </body>
+</html>

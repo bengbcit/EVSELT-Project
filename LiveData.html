@@ -1,0 +1,183 @@
+    <button id="read">Connect with BLE device</button>
+    <button id="start" disabled>Start</button>
+    <button id="stop" disabled>Stop</button>
+    <p>Live datas shows in the table below.</p>
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+    
+      var deviceName = 'EVSELT'
+      var bleService = 'environmental_sensing'
+      var bleCharacteristic = 'string'
+      var bluetoothDeviceDetected
+      var gattCharacteristic
+      
+      var message = ""
+      var flag = false
+      var split = ""
+      var current_time = []
+      var rawData = []
+      var group = []
+
+      // Create table package
+      google.charts.load('current', {'packages':['table']});
+      
+      document.querySelector('#read').addEventListener('click', function() {
+        if (isWebBluetoothEnabled()) { read() }
+      })
+
+      document.querySelector('#start').addEventListener('click', function(event) {
+        if (isWebBluetoothEnabled()) {
+          //Empty table by erasing group array
+          group = []
+          start() }
+      })
+
+      document.querySelector('#stop').addEventListener('click', function(event) {
+        if (isWebBluetoothEnabled()) { stop() }
+      })
+
+      function isWebBluetoothEnabled() {
+        if (!navigator.bluetooth) {
+          console.log('Web Bluetooth API is not available in this browser!')
+          return false
+        }
+        return true
+      }
+
+      function getDeviceInfo() {
+        let options = {
+          optionalServices: [bleService],
+          filters: [
+            { "name": deviceName }
+          ]
+        }
+
+        console.log('Requesting any Bluetooth Device...')
+        return navigator.bluetooth.requestDevice(options).then(device => {
+          bluetoothDeviceDetected = device
+        }).catch(error => {
+          console.log('Argh! ' + error)
+        })
+      }
+
+      function read() {
+        return (bluetoothDeviceDetected ? Promise.resolve() : getDeviceInfo())
+        .then(connectGATT)
+        .then(_ => {
+          console.log('Reading UV Index...')
+          return gattCharacteristic.readValue()
+        })
+        .catch(error => {
+          console.log('Waiting to start reading: ' + error)
+        })
+      }
+
+      function connectGATT() {
+        if (bluetoothDeviceDetected.gatt.connected && gattCharacteristic) {
+          return Promise.resolve()
+        }
+
+        return bluetoothDeviceDetected.gatt.connect()
+        .then(server => {
+          console.log('Getting GATT Service...')
+          return server.getPrimaryService(bleService)
+        })
+        .then(service => {
+          console.log('Getting GATT Characteristic...')
+          return service.getCharacteristic(bleCharacteristic)
+        })
+        .then(characteristic => {
+          gattCharacteristic = characteristic
+          gattCharacteristic.addEventListener('characteristicvaluechanged',
+              handleChangedValue)
+          document.querySelector('#start').disabled = false
+          document.querySelector('#stop').disabled = true
+        })
+      }
+
+      // SEND STRINGS FROM BLUEFRUIT DEVICE TO WEB //
+      function handleChangedValue(event) {
+        let value = event.target.value.getUint8(0)
+
+        // Create string message while current char sent is not "="
+        if (value != 61) //Char "="
+        {
+          var res = String.fromCharCode(value)
+          message = message + res
+        } else {
+          // Separate string into two different values
+          split = message.split(" ")
+
+          // Change string values to number values
+          split[0] = parseFloat(split[0])
+          split[1] = parseFloat(split[1])
+
+          // Set current date and time
+          var now = new Date()
+          
+          // concact current time and data
+          current_time = [now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds()]
+          
+          rawData = current_time.concat(split)
+          console.log(rawData.length);
+          console.log(rawData[0]);
+          console.log(rawData[1]);
+          console.log(rawData[2]);
+          // Reset message
+          message = ""
+
+          group.push(rawData);
+          
+          // Call Function
+          google.charts.setOnLoadCallback(drawTable);
+        }
+        
+      }
+
+      function start() {
+        gattCharacteristic.startNotifications()
+        .then(_ => {
+          console.log('Start reading...')
+          document.querySelector('#start').disabled = true
+          document.querySelector('#stop').disabled = false
+        })
+        .catch(error => {
+          console.log('[ERROR] Start: ' + error)
+        })
+      }
+
+      function stop() {
+        gattCharacteristic.stopNotifications()
+        .then(_ => {
+          console.log('Stop reading...')
+          document.querySelector('#start').disabled = false
+          document.querySelector('#stop').disabled = true
+        })
+        .catch(error => {
+          console.log('[ERROR] Stop: ' + error)
+        })
+      }
+
+      // DRAW THE TABLE //
+      function drawTable()
+      {
+        var data = new google.visualization.DataTable();
+
+        data.addColumn('string', 'Time');
+        data.addColumn('number', 'Current (A)');
+        data.addColumn('number', 'Voltage (V)');
+        data.addRows(group);
+
+        // Draw table
+        var table = new google.visualization.Table(document.getElementById('table_div'));
+        table.draw(data, {showRowNumber: false, width: '80%', height: '60%'});
+      }
+    </script>
+    
+  <body>
+    <div id="table_div"></div> 
+    <br></br>
+    Go back to home page <a href="EVSELT.html">here!</a>
+  </body>
+  
