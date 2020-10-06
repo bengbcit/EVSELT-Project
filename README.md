@@ -3,7 +3,9 @@ Our capstone project is about building an Electrical Vehicle Supply Equipment Lo
 BCIT Capstone Project EVSELT Website Video Demo:https://youtu.be/qaRW5BkyD9E
 
 Pilot Circuit Test video:https://youtu.be/o8PSM9pEiu8
+
 LED Trial Demo video: https://www.youtube.com/watch?v=w1OeimQE9vs
+
 Sending Data From Bluefruit to Webpage video:https://youtu.be/jLIEY1iUB6s
 
 
